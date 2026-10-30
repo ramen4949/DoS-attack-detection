@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DoS/DDoS Attack Detection & Analytics Dashboard</title>
+    <title>DoS/DDoS リアルタイム攻撃検知 & 統合トラフィック分析システム</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
@@ -17,19 +17,18 @@
                 extend: {
                     colors: {
                         soc: {
-                            bg: '#0a0d14',
-                            panel: '#111827',
-                            border: '#1f2937',
-                            accent: '#06b6d4',
-                            accentGlow: 'rgba(6, 182, 212, 0.15)',
-                            alert: '#ef4444',
-                            warning: '#f59e0b',
-                            success: '#10b981',
-                            muted: '#6b7280'
+                            bg: '#05070a',
+                            panel: '#0d131d',
+                            border: '#1a2436',
+                            accent: '#00d2ff',
+                            alert: '#ff3b30',
+                            warning: '#ff9500',
+                            success: '#34c759'
                         }
                     },
                     fontFamily: {
-                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Courier New', 'monospace'],
+                        sans: ['Inter', 'Hiragino Sans', 'Meiryo', 'sans-serif']
                     }
                 }
             }
@@ -38,336 +37,322 @@
     <style>
         body {
             background-color: #05070a;
-            color: #e5e7eb;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: #e2e8f0;
         }
-        .glow-accent {
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
-        }
-        .glow-alert {
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.35);
-        }
-        .scanline {
-            background: linear-gradient(
-                to bottom,
-                rgba(255,255,255,0),
-                rgba(255,255,255,0) 50%,
-                rgba(0, 0, 0, 0.3) 50%,
-                rgba(0, 0, 0, 0.3)
-            );
-            background-size: 100% 4px;
-        }
-        /* Custom Scrollbar */
+        /* カスタムスクロールバー */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #0b0f17;
+            background: #090d14;
         }
         ::-webkit-scrollbar-thumb {
-            background: #1f2937;
+            background: #1e293b;
             border-radius: 3px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #374151;
+            background: #334155;
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans bg-[#05070a] text-slate-200 antialiased selection:bg-cyan-500 selection:text-black">
 
-    <!-- Header Navigation -->
-    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+    <!-- ヘッダーナビゲーション -->
+    <header class="border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="p-2 bg-cyan-950/80 border border-cyan-500/40 rounded-lg text-cyan-400">
                     <i data-lucide="shield-alert" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold tracking-wider text-slate-100 flex items-center gap-2">
-                        SENTINEL-X <span class="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono">SOC DASHBOARD</span>
+                    <h1 class="text-base font-bold tracking-wider text-slate-100 flex items-center gap-2">
+                        SENTINEL-X <span class="text-xs px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-mono">DoS/DDoS リアルタイム検知エンジン</span>
                     </h1>
-                    <p class="text-xs text-slate-400 font-mono">DDoS/DoS Threat Detection & Automated Mitigation Engine</p>
+                    <p class="text-xs text-slate-400 font-mono">田代砲・高頻度HTTP Flood・連打攻撃 自動識別・遮断システム</p>
                 </div>
             </div>
 
-            <!-- Global Status Bar -->
-            <div class="flex items-center space-x-6 text-sm font-mono">
-                <div class="hidden md:flex items-center space-x-2">
-                    <span class="text-slate-400">STATUS:</span>
-                    <span id="system-status-badge" class="px-2.5 py-1 rounded text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        PROTECTED
+            <!-- WebSocket 接続ステータス & 統合コントロール -->
+            <div class="flex items-center space-x-4 text-xs font-mono">
+                <div class="hidden md:flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                    <span class="text-slate-400">WebSocket通信:</span>
+                    <span id="ws-status-badge" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950 text-amber-400 border border-amber-800 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        未接続 (スタンドアロン動作中)
                     </span>
                 </div>
-                <div class="text-right">
-                    <div class="text-xs text-slate-500">CURRENT TIME</div>
-                    <div id="utc-clock" class="text-slate-300 font-mono">00:00:00 UTC</div>
-                </div>
+                <button id="btn-open-python-code" class="px-3 py-1.5 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-300 flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="code" class="w-3.5 h-3.5"></i> Python統合コード表示
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Container -->
+    <!-- メインコンテンツエリア -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        <!-- Top Metrics Cards -->
+        <!-- システムアラート通知バナー (初期状態: 隠し) -->
+        <div id="system-alert-banner" class="hidden p-4 rounded-xl border bg-red-950/60 border-red-800 text-red-200 flex items-center justify-between shadow-lg">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="alert-octagon" class="w-6 h-6 text-red-400 animate-bounce"></i>
+                <div>
+                    <h3 id="alert-banner-title" class="font-bold text-sm font-mono">DoS攻撃（高頻度アクセス）を検知しました</h3>
+                    <p id="alert-banner-desc" class="text-xs text-red-300">単一の送信元IPから閾値を超える大量リクエストを受信しています。自動防御ルールを適用中。</p>
+                </div>
+            </div>
+            <button onclick="dismissAlertBanner()" class="text-xs text-red-400 hover:text-red-200 font-mono px-2 py-1 underline">閉じる</button>
+        </div>
+
+        <!-- 1. メトリクスカードグループ -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- RPS Metric -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden group">
+            <!-- 現在のRPS -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-md relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
                 <div class="flex justify-between items-start">
-                    <span class="text-xs font-mono font-medium text-slate-400 uppercase tracking-wider">Current Traffic</span>
+                    <span class="text-xs font-mono font-medium text-slate-400">現在処理レート</span>
                     <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
                 </div>
                 <div class="mt-3 flex items-baseline justify-between">
-                    <span id="metric-rps" class="text-3xl font-bold font-mono text-slate-100">18</span>
-                    <span class="text-xs font-mono text-slate-400">Req / Sec</span>
+                    <span id="metric-rps" class="text-3xl font-bold font-mono text-slate-100">0</span>
+                    <span class="text-xs font-mono text-slate-400">req / sec</span>
                 </div>
                 <div class="mt-2 text-xs font-mono text-slate-500 flex justify-between">
-                    <span>Peak: <span id="metric-peak-rps" class="text-slate-300">24</span> RPS</span>
-                    <span id="rps-status-label" class="text-cyan-400">Normal</span>
+                    <span>ピーク: <span id="metric-peak-rps" class="text-slate-300">0</span> RPS</span>
+                    <span>移動平均: <span id="metric-avg-rps" class="text-slate-300">0.0</span></span>
                 </div>
             </div>
 
-            <!-- Blocked IPs Metric -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
+            <!-- 自動ブロックIP数 -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-md relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                 <div class="flex justify-between items-start">
-                    <span class="text-xs font-mono font-medium text-slate-400 uppercase tracking-wider">Blocked IPs</span>
+                    <span class="text-xs font-mono font-medium text-slate-400">自動遮断IP数</span>
                     <i data-lucide="ban" class="w-4 h-4 text-red-400"></i>
                 </div>
                 <div class="mt-3 flex items-baseline justify-between">
                     <span id="metric-blocked-ips" class="text-3xl font-bold font-mono text-slate-100">0</span>
-                    <span class="text-xs font-mono text-slate-400">Active Filters</span>
+                    <span class="text-xs font-mono text-slate-400">IPアドレス</span>
                 </div>
                 <div class="mt-2 text-xs font-mono text-slate-500 flex justify-between">
-                    <span>Auto-mitigated</span>
-                    <span id="blocked-count-sub" class="text-red-400 font-semibold">0 Rules</span>
+                    <span>防御フィルタ</span>
+                    <span id="blocked-status-sub" class="text-emerald-400 font-semibold">アクティブ</span>
                 </div>
             </div>
 
-            <!-- Threat Level Metric -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
+            <!-- 脅威レベル -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-md relative overflow-hidden">
                 <div id="threat-indicator-bar" class="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
                 <div class="flex justify-between items-start">
-                    <span class="text-xs font-mono font-medium text-slate-400 uppercase tracking-wider">Threat Level</span>
-                    <i data-lucide="radar" class="w-4 h-4 text-emerald-400" id="threat-icon"></i>
+                    <span class="text-xs font-mono font-medium text-slate-400">現在の脅威ステータス</span>
+                    <i data-lucide="shield" class="w-4 h-4 text-emerald-400" id="threat-icon"></i>
                 </div>
                 <div class="mt-3 flex items-baseline justify-between">
-                    <span id="metric-threat-level" class="text-2xl font-bold font-mono text-emerald-400">LOW</span>
-                    <span id="threat-score" class="text-xs font-mono text-slate-400">Score: 12/100</span>
+                    <span id="metric-threat-level" class="text-2xl font-bold font-mono text-emerald-400">正常 (NORMAL)</span>
                 </div>
                 <div class="mt-2 text-xs font-mono text-slate-500 flex justify-between">
-                    <span>Attack Vectors</span>
-                    <span id="detected-vector" class="text-slate-300">None</span>
+                    <span>検出ベクトル:</span>
+                    <span id="detected-vector" class="text-slate-300">なし</span>
                 </div>
             </div>
 
-            <!-- Total Requests Metric -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-lg relative overflow-hidden">
+            <!-- 総受託リクエスト数 -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-md relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                 <div class="flex justify-between items-start">
-                    <span class="text-xs font-mono font-medium text-slate-400 uppercase tracking-wider">Total Processed</span>
+                    <span class="text-xs font-mono font-medium text-slate-400">総リクエスト分析数</span>
                     <i data-lucide="server" class="w-4 h-4 text-indigo-400"></i>
                 </div>
                 <div class="mt-3 flex items-baseline justify-between">
                     <span id="metric-total-requests" class="text-3xl font-bold font-mono text-slate-100">0</span>
-                    <span class="text-xs font-mono text-slate-400">Requests</span>
+                    <span class="text-xs font-mono text-slate-400">件</span>
                 </div>
                 <div class="mt-2 text-xs font-mono text-slate-500 flex justify-between">
-                    <span>Dropped: <span id="metric-dropped-requests" class="text-red-400 font-semibold">0</span></span>
-                    <span>Drop Rate: <span id="metric-drop-rate" class="text-slate-300">0%</span></span>
+                    <span>遮断数: <span id="metric-dropped-requests" class="text-red-400 font-semibold">0</span></span>
+                    <span>遮断率: <span id="metric-drop-rate" class="text-slate-300">0.0%</span></span>
                 </div>
             </div>
         </div>
 
-        <!-- Real-Time Chart & Control Panel Grid -->
+        <!-- 2. チャート & 接続設定・テストモジュール -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- Chart Section (2 Cols) -->
+            <!-- リアルタイムトラフィックチャート (2列) -->
             <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xl">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-2">
                     <div>
                         <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
                             <i data-lucide="line-chart" class="w-5 h-5 text-cyan-400"></i>
-                            Real-Time Traffic Monitor (RPS)
+                            リアルタイムトラフィック監視 (Requests Per Second)
                         </h2>
-                        <p class="text-xs text-slate-400 font-mono">Monitoring requests per second vs mitigation threshold</p>
+                        <p class="text-xs text-slate-400 font-mono">1秒ごとの総インバウンド負荷と検知閾値のリアルタイム追跡</p>
                     </div>
                     <div class="flex items-center space-x-3 text-xs font-mono">
                         <div class="flex items-center gap-1.5">
                             <span class="w-3 h-0.5 bg-cyan-400 inline-block"></span>
-                            <span class="text-slate-300">Inbound</span>
+                            <span class="text-slate-300">インバウンド</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="w-3 h-0.5 bg-red-500 inline-block"></span>
-                            <span class="text-slate-300">Blocked</span>
+                            <span class="text-slate-300">遮断トラフィック</span>
                         </div>
                         <div class="flex items-center gap-1.5">
                             <span class="w-3 h-0.5 bg-amber-500 inline-block border-t border-dashed border-amber-500"></span>
-                            <span class="text-slate-300">Threshold</span>
+                            <span class="text-slate-300">警告閾値</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Chart Canvas Container -->
+                <!-- チャートキャンバス -->
                 <div class="relative w-full h-72 pt-4">
                     <canvas id="trafficChart"></canvas>
                 </div>
             </div>
 
-            <!-- Attack Simulation Generator (1 Col) -->
+            <!-- リアルタイム検知テスト & 外部サーバー接続設定 (1列) -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-xl">
                 <div>
                     <div class="pb-3 border-b border-slate-800">
                         <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
-                            <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
-                            Traffic Generator / Attack Simulation
+                            <i data-lucide="radio" class="w-5 h-5 text-amber-400"></i>
+                            実トラフィックテスト & 接続
                         </h2>
-                        <p class="text-xs text-slate-400 font-mono">Simulate various malicious and legitimate access patterns</p>
+                        <p class="text-xs text-slate-400 font-mono">ブラウザ内実アクセス検知およびWebSocketバックエンド接続</p>
                     </div>
 
+                    <!-- WebSocketサーバー接続フォーム -->
                     <div class="mt-4 space-y-3">
-                        <!-- Normal Traffic Button -->
-                        <button id="btn-traffic-normal" class="w-full py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-mono text-xs flex items-center justify-between transition-colors">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
-                                Normal Legitimate Traffic
-                            </span>
-                            <span class="text-slate-400">15-30 RPS</span>
-                        </button>
+                        <div>
+                            <label class="block text-xs font-mono text-slate-300 mb-1">WebSocketバックエンドURL</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="input-ws-url" value="ws://localhost:8765" class="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-1.5 font-mono text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                                <button id="btn-connect-ws" class="px-3 py-1.5 rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-700 text-cyan-300 font-mono text-xs font-semibold transition-colors">
+                                    接続
+                                </button>
+                            </div>
+                        </div>
 
-                        <!-- Tashiro Cannon / Repeat Click Attack Button -->
-                        <button id="btn-attack-tashiro" class="w-full py-2.5 px-4 rounded-lg bg-red-950/50 hover:bg-red-900/60 border border-red-800/80 text-red-200 font-mono text-xs flex items-center justify-between transition-all group">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="crosshair" class="w-4 h-4 text-red-400 group-hover:scale-110 transition-transform"></i>
-                                Single-IP High-Freq Attack (Tashiro Cannon)
-                            </span>
-                            <span class="text-red-400 font-semibold">120+ RPS</span>
-                        </button>
+                        <!-- ブラウザ内実リクエスト送信テスト (田代砲/連打挙動テスト) -->
+                        <div class="pt-3 border-t border-slate-800">
+                            <label class="block text-xs font-mono text-slate-300 mb-2">ブラウザ内実アクセス生成テスト</label>
+                            <p class="text-[11px] text-slate-400 mb-2">※実際にこのダッシュボードのAPIインターセプターに対して実HTTPリクエストを発行し、検知エンジンを動作させます。</p>
+                            
+                            <div class="space-y-2">
+                                <button id="btn-test-single" class="w-full py-2 px-3 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-mono text-xs flex items-center justify-between transition-colors">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-cyan-400"></i>
+                                        通常1リクエスト実行
+                                    </span>
+                                    <span class="text-slate-400">1 Req</span>
+                                </button>
 
-                        <!-- Distributed DDoS Simulation Button -->
-                        <button id="btn-attack-ddos" class="w-full py-2.5 px-4 rounded-lg bg-purple-950/50 hover:bg-purple-900/60 border border-purple-800/80 text-purple-200 font-mono text-xs flex items-center justify-between transition-all group">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="globe-2" class="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform"></i>
-                                Distributed DDoS Flood (Multi-IP Botnet)
-                            </span>
-                            <span class="text-purple-400 font-semibold">250+ RPS</span>
-                        </button>
-
-                        <!-- SYN Flood Simulation Button -->
-                        <button id="btn-attack-syn" class="w-full py-2.5 px-4 rounded-lg bg-amber-950/50 hover:bg-amber-900/60 border border-amber-800/80 text-amber-200 font-mono text-xs flex items-center justify-between transition-all group">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="cpu" class="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform"></i>
-                                TCP SYN Flood Simulation
-                            </span>
-                            <span class="text-amber-400 font-semibold">SYN Burst</span>
-                        </button>
+                                <button id="btn-test-burst" class="w-full py-2 px-3 rounded bg-red-950/60 hover:bg-red-900/70 border border-red-800/80 text-red-200 font-mono text-xs flex items-center justify-between transition-all">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="zap" class="w-4 h-4 text-red-400"></i>
+                                        田代砲・高頻度連打テスト (超高速発射)
+                                    </span>
+                                    <span class="text-red-400 font-semibold">50 Req/sec</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-800 flex gap-2">
-                    <button id="btn-stop-all" class="flex-1 py-2 px-3 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5">
-                        <i data-lucide="square" class="w-3.5 h-3.5"></i> Reset To Normal
-                    </button>
-                    <button id="btn-clear-blacklists" class="py-2 px-3 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs border border-slate-700 transition-colors flex items-center justify-center gap-1.5" title="Clear Blocked IPs">
-                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear IPs
-                    </button>
+                <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-[11px] font-mono text-slate-500">
+                    <span>検知モード: ACTIVE INTERCEPTOR</span>
+                    <button id="btn-clear-stats" class="text-slate-400 hover:text-slate-200 underline">統計リセット</button>
                 </div>
             </div>
+
         </div>
 
-        <!-- Logs Table & Configuration Grid -->
+        <!-- 3. リアルタイムログテーブル & 設定/ブラックリスト -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- Live Traffic Log Table (2 Cols) -->
+            <!-- ログテーブル (2列) -->
             <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col h-[420px]">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                     <div>
                         <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
                             <i data-lucide="terminal" class="w-5 h-5 text-cyan-400"></i>
-                            Live Request Inspection & Analytics Log
+                            リアルタイムリクエスト検知 & パケットログ
                         </h2>
-                        <p class="text-xs text-slate-400 font-mono">Real-time HTTP payload & IP pattern analysis stream</p>
+                        <p class="text-xs text-slate-400 font-mono">インスペクションエンジンが自動解析した全パケットストリーム</p>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700">
-                            Auto-scroll
-                        </span>
-                        <button id="btn-clear-logs" class="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors" title="Clear Log Output">
+                        <button id="btn-clear-logs" class="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors" title="ログクリア">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Table Wrapper -->
-                <div class="flex-1 overflow-y-auto mt-3 border border-slate-800/80 rounded-lg bg-slate-950/60 font-mono text-xs">
+                <!-- ログテーブル本体 -->
+                <div class="flex-1 overflow-y-auto mt-3 border border-slate-800/80 rounded-lg bg-slate-950/80 font-mono text-xs">
                     <table class="w-full text-left border-collapse">
                         <thead class="sticky top-0 bg-slate-900 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
                             <tr>
-                                <th class="py-2 px-3">Timestamp</th>
-                                <th class="py-2 px-3">Source IP</th>
-                                <th class="py-2 px-3">Request Path</th>
-                                <th class="py-2 px-3">Vector / Method</th>
-                                <th class="py-2 px-3">Action Status</th>
-                                <th class="py-2 px-3">Detection Reason</th>
+                                <th class="py-2 px-3">タイムスタンプ</th>
+                                <th class="py-2 px-3">送信元IP / ID</th>
+                                <th class="py-2 px-3">パス / メソッド</th>
+                                <th class="py-2 px-3">秒間レート</th>
+                                <th class="py-2 px-3">判定</th>
+                                <th class="py-2 px-3">詳細理由</th>
                             </tr>
                         </thead>
                         <tbody id="log-table-body" class="divide-y divide-slate-800/50 text-slate-300">
-                            <!-- Dynamic log rows inserted via JS -->
+                            <!-- JS側で動的に更新 -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Configuration & Blacklist Panel (1 Col) -->
+            <!-- 設定パラメータ & アクティブブラックリスト (1列) -->
             <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-between h-[420px]">
                 <div>
                     <div class="pb-3 border-b border-slate-800 flex justify-between items-center">
                         <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
                             <i data-lucide="sliders" class="w-5 h-5 text-cyan-400"></i>
-                            Mitigation Rules & Config
+                            検知閾値ルール設定
                         </h2>
                         <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
                     </div>
 
-                    <!-- Rule Parameters -->
+                    <!-- スライダー設定 -->
                     <div class="mt-4 space-y-4 text-xs font-mono">
                         <div>
                             <div class="flex justify-between text-slate-300 mb-1">
-                                <span>Global RPS Alarm Limit:</span>
-                                <span id="label-rps-limit" class="text-cyan-400 font-bold">100 RPS</span>
+                                <span>全体のDos警告レベル閾値:</span>
+                                <span id="label-rps-limit" class="text-cyan-400 font-bold">30 RPS</span>
                             </div>
-                            <input type="range" id="input-rps-limit" min="40" max="300" step="10" value="100" class="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded cursor-pointer">
-                            <p class="text-[10px] text-slate-500 mt-0.5">Triggers DDoS Alert mode when total RPS exceeds threshold.</p>
+                            <input type="range" id="input-rps-limit" min="10" max="200" step="5" value="30" class="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded cursor-pointer">
+                            <p class="text-[10px] text-slate-500 mt-0.5">サーバー全体の合計秒間リクエスト数がこれを超えると「警告」判定になります。</p>
                         </div>
 
                         <div>
                             <div class="flex justify-between text-slate-300 mb-1">
-                                <span>Single-IP Tashiro/Burst Limit:</span>
-                                <span id="label-ip-limit" class="text-cyan-400 font-bold">25 Req/Sec</span>
+                                <span>同一IP高頻度(田代砲)遮断閾値:</span>
+                                <span id="label-ip-limit" class="text-cyan-400 font-bold">8 Req/sec</span>
                             </div>
-                            <input type="range" id="input-ip-limit" min="5" max="80" step="5" value="25" class="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded cursor-pointer">
-                            <p class="text-[10px] text-slate-500 mt-0.5">Auto-blocks individual IP exceeding burst threshold.</p>
+                            <input type="range" id="input-ip-limit" min="3" max="50" step="1" value="8" class="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded cursor-pointer">
+                            <p class="text-[10px] text-slate-500 mt-0.5">同一IPが1秒間にこの数を超えるアクセスを行った場合、即座にブロックリストへ追加します。</p>
                         </div>
                     </div>
 
-                    <!-- Active Blacklist Container -->
+                    <!-- 自動遮断IPリスト -->
                     <div class="mt-4">
-                        <span class="text-xs font-mono text-slate-400 block mb-2 flex justify-between items-center">
-                            <span>Active IP Blacklist Filters</span>
-                            <span id="blacklist-badge-count" class="px-1.5 py-0.5 text-[10px] bg-red-950 text-red-400 border border-red-800 rounded">0 IPs</span>
-                        </span>
-                        <div id="blacklist-container" class="h-28 overflow-y-auto border border-slate-800 bg-slate-950/80 rounded p-2 space-y-1.5 font-mono text-xs">
-                            <div class="text-slate-600 text-[11px] italic text-center py-6">No IPs currently blacklisted</div>
+                        <div class="flex justify-between items-center text-xs font-mono text-slate-400 mb-2">
+                            <span>自動遮断IP / クライアントリスト</span>
+                            <span id="blacklist-badge-count" class="px-1.5 py-0.5 text-[10px] bg-red-950 text-red-400 border border-red-800 rounded">0 件</span>
+                        </div>
+                        <div id="blacklist-container" class="h-24 overflow-y-auto border border-slate-800 bg-slate-950/80 rounded p-2 space-y-1.5 font-mono text-xs">
+                            <div class="text-slate-600 text-[11px] italic text-center py-4">現在ブロックされているIPはありません</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-3 border-t border-slate-800 text-[10px] text-slate-500 font-mono flex justify-between items-center">
-                    <span>ENGINE: Adaptive Rate Limiter v3.4</span>
-                    <span class="text-emerald-500">ACTIVE</span>
+                <div class="pt-3 border-t border-slate-800 flex justify-between items-center font-mono text-[10px] text-slate-500">
+                    <span>自動ルール更新: 有効</span>
+                    <button id="btn-clear-blacklists" class="text-red-400 hover:text-red-300 underline">全IPブロック解除</button>
                 </div>
             </div>
 
@@ -375,218 +360,410 @@
 
     </main>
 
-    <!-- Footer -->
+    <!-- Python連携用コードダイアログ (モーダル) -->
+    <div id="python-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-3xl w-full flex flex-col max-h-[85vh] shadow-2xl">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="code-2" class="w-5 h-5 text-cyan-400"></i>
+                    <h3 class="font-bold font-mono text-slate-100 text-sm">Python バックエンド検証コード (FastAPI / WebSocket)</h3>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-slate-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 font-mono text-xs bg-slate-950 text-slate-300">
+                <p class="text-slate-400 mb-3">以下のPythonスクリプトを実行すると、実環境でのアクセスログをこのダッシュボードにWebSocketでリアルタイム転送できます。（Python 3.10+ 対応）</p>
+                <div class="relative">
+                    <button id="btn-copy-code" class="absolute top-2 right-2 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-[11px] text-cyan-300">
+                        コードをコピー
+                    </button>
+                    <pre id="python-code-block" class="p-3 bg-slate-900 rounded border border-slate-800 overflow-x-auto text-cyan-200">
+import asyncio
+import json
+import random
+import time
+import websockets
+
+# SENTINEL-X ドッキング用 WebSocket サーバー
+# 実際のAPIサーバーのミドルウェアやプロキシログからWebsocketで送信可能
+
+connected_clients = set()
+
+async def handler(websocket):
+    connected_clients.add(websocket)
+    print("[SENTINEL-X] ダッシュボードが接続されました")
+    try:
+        async for message in websocket:
+            # 受信メッセージ処理 (必要に応じて)
+            pass
+    except websockets.exceptions.ConnectionClosed:
+        pass
+    finally:
+        connected_clients.remove(websocket)
+
+async def broadcast_traffic_log(ip, path, method, status_code):
+    if not connected_clients:
+        return
+    
+    payload = json.dumps({
+        "timestamp": time.strftime("%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03d}",
+        "ip": ip,
+        "path": path,
+        "method": method,
+        "status_code": status_code
+    })
+    
+    await asyncio.gather(*[client.send(payload) for client in connected_clients])
+
+# サーバー起動メインループ
+async def main():
+    async with websockets.serve(handler, "localhost", 8765):
+        print("SENTINEL-X WebSocket Server started on ws://localhost:8765")
+        await asyncio.Future()  # run forever
+
+if __name__ == "__main__":
+    asyncio.run(main())
+</pre>
+                </div>
+            </div>
+            <div class="p-3 border-t border-slate-800 text-right">
+                <button id="btn-close-modal-2" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-mono text-xs">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- フッター -->
     <footer class="border-t border-slate-800/80 bg-slate-950 py-3 text-center text-xs font-mono text-slate-500 mt-6">
-        SENTINEL-X SECURITY ANALYTICS SYSTEM &bull; HIGH-FREQUENCY DOS DETECTION SIMULATOR
+        SENTINEL-X SECURITY ANALYTICS SYSTEM &bull; REAL-TIME DOS ENGINE
     </footer>
 
-    <!-- JavaScript Logic -->
+    <!-- システム制御・検知ロジック JavaScript -->
     <script>
-        // System State & Configurations
+        // システム状態と設定
         const state = {
-            rpsThreshold: 100,
-            ipRateLimit: 25, // req/sec per single IP
-            currentMode: 'normal', // normal, tashiro, ddos, syn
+            rpsThreshold: 30,      // 全体DoS判定閾値 (RPS)
+            ipRateLimit: 8,        // 同一IP田代砲/連打遮断閾値 (Req/sec)
             totalRequests: 0,
             droppedRequests: 0,
-            peakRps: 18,
+            peakRps: 0,
             blacklistedIPs: new Set(),
-            ipRequestCounts: {}, // { ip: currentSecondCount }
-            ipHistory: {},
-            threatLevel: 'LOW',
-            threatScore: 12,
-            activeVector: 'None'
+            
+            // リアルタイムトラフィック計測用ウィンドウ (直近1秒間のリクエスト記録)
+            requestLogWindow: [],  // Array of { timestamp, ip, path, method, status }
+            ipCountCurrentSecond: {}, // { ip: count }
+            
+            // 過去30秒のRPS履歴
+            rpsHistory: Array(30).fill(0),
+            blockedHistory: Array(30).fill(0),
+            
+            ws: null,
+            isWsConnected: false,
+            burstInterval: null
         };
 
-        // Pre-defined Fake Target IPs and Paths
-        const samplePaths = ['/api/v1/login', '/index.html', '/checkout/pay', '/products/search', '/api/v2/user/profile', '/static/main.js'];
-        const legitimateIPs = ['192.168.1.104', '10.0.4.12', '172.16.22.81', '192.168.1.210', '10.0.2.19', '172.16.5.99', '198.51.100.42'];
-        const attackerTashiroIP = '203.0.113.88'; // Fixed IP for Tashiro Cannon demonstration
-
-        // UI Element References
+        // UI要素参照
         const els = {
             metricRps: document.getElementById('metric-rps'),
             metricPeakRps: document.getElementById('metric-peak-rps'),
+            metricAvgRps: document.getElementById('metric-avg-rps'),
             metricBlockedIps: document.getElementById('metric-blocked-ips'),
             metricThreatLevel: document.getElementById('metric-threat-level'),
-            threatScore: document.getElementById('threat-score'),
-            detectedVector: document.getElementById('detected-vector'),
             metricTotalRequests: document.getElementById('metric-total-requests'),
             metricDroppedRequests: document.getElementById('metric-dropped-requests'),
             metricDropRate: document.getElementById('metric-drop-rate'),
-            statusBadge: document.getElementById('system-status-badge'),
-            rpsStatusLabel: document.getElementById('rps-status-label'),
+            
+            wsStatusBadge: document.getElementById('ws-status-badge'),
+            inputWsUrl: document.getElementById('input-ws-url'),
+            btnConnectWs: document.getElementById('btn-connect-ws'),
+            
             logTableBody: document.getElementById('log-table-body'),
             blacklistContainer: document.getElementById('blacklist-container'),
             blacklistBadgeCount: document.getElementById('blacklist-badge-count'),
+            
             threatIndicatorBar: document.getElementById('threat-indicator-bar'),
             threatIcon: document.getElementById('threat-icon'),
+            detectedVector: document.getElementById('detected-vector'),
+            
             inputRpsLimit: document.getElementById('input-rps-limit'),
             inputIpLimit: document.getElementById('input-ip-limit'),
             labelRpsLimit: document.getElementById('label-rps-limit'),
             labelIpLimit: document.getElementById('label-ip-limit'),
-            blockedCountSub: document.getElementById('blocked-count-sub'),
-            utcClock: document.getElementById('utc-clock')
+            
+            alertBanner: document.getElementById('system-alert-banner'),
+            alertTitle: document.getElementById('alert-banner-title'),
+            alertDesc: document.getElementById('alert-banner-desc'),
+            
+            pythonModal: document.getElementById('python-modal')
         };
 
-        // Initialize Chart.js
+        // Chart.js の初期化
         let trafficChart;
-        const chartData = {
-            labels: Array(30).fill(''),
-            datasets: [
-                {
-                    label: 'Inbound RPS',
-                    data: Array(30).fill(15),
-                    borderColor: '#06b6d4',
-                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.35,
-                    pointRadius: 0
-                },
-                {
-                    label: 'Blocked RPS',
-                    data: Array(30).fill(0),
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.35,
-                    pointRadius: 0
-                },
-                {
-                    label: 'Threshold',
-                    data: Array(30).fill(state.rpsThreshold),
-                    borderColor: '#f59e0b',
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    pointRadius: 0,
-                    fill: false
-                }
-            ]
-        };
-
         function initChart() {
             const ctx = document.getElementById('trafficChart').getContext('2d');
             trafficChart = new Chart(ctx, {
                 type: 'line',
-                data: chartData,
+                data: {
+                    labels: Array(30).fill(''),
+                    datasets: [
+                        {
+                            label: '総インバウンド RPS',
+                            data: state.rpsHistory,
+                            borderColor: '#00d2ff',
+                            backgroundColor: 'rgba(0, 210, 255, 0.08)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.2,
+                            pointRadius: 0
+                        },
+                        {
+                            label: '遮断 RPS',
+                            data: state.blockedHistory,
+                            borderColor: '#ff3b30',
+                            backgroundColor: 'rgba(255, 59, 48, 0.15)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.2,
+                            pointRadius: 0
+                        },
+                        {
+                            label: '警告閾値',
+                            data: Array(30).fill(state.rpsThreshold),
+                            borderColor: '#ff9500',
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: { duration: 300 },
+                    animation: { duration: 200 },
                     scales: {
                         x: {
-                            grid: { color: 'rgba(31, 41, 55, 0.5)' },
+                            grid: { color: 'rgba(30, 41, 59, 0.5)' },
                             ticks: { display: false }
                         },
                         y: {
                             min: 0,
-                            suggestedMax: 150,
-                            grid: { color: 'rgba(31, 41, 55, 0.5)' },
+                            suggestedMax: 20,
+                            grid: { color: 'rgba(30, 41, 59, 0.5)' },
                             ticks: {
-                                color: '#9ca3af',
+                                color: '#94a3b8',
                                 font: { family: 'ui-monospace' }
                             }
                         }
                     },
                     plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: '#0f172a',
-                            titleColor: '#e2e8f0',
-                            bodyColor: '#cbd5e1',
-                            borderColor: '#334155',
-                            borderWidth: 1
-                        }
+                        legend: { display: false }
                     }
                 }
             });
         }
 
-        // Clock Update
-        function updateClock() {
-            const now = new Date();
-            els.utcClock.textContent = now.toISOString().substring(11, 19) + ' UTC';
+        // ==========================================
+        // 実リクエスト受託 & 検知エンジンコア
+        // ==========================================
+        function processIncomingRequest(reqData) {
+            const now = Date.now();
+            const ip = reqData.ip || '127.0.0.1';
+            const path = reqData.path || '/api/resource';
+            const method = reqData.method || 'GET';
+
+            state.totalRequests++;
+
+            // 1. ブラックリスト判定
+            if (state.blacklistedIPs.has(ip)) {
+                state.droppedRequests++;
+                addLogEntry(now, ip, path, method, 'BLOCKED', `自動遮断IP (${ip}) からのリクエスト`);
+                return { action: 'BLOCKED', reason: 'IP_BLACKLISTED' };
+            }
+
+            // 2. 秒間リクエストウィンドウへの記録
+            state.requestLogWindow.push({ timestamp: now, ip: ip, path: path });
+
+            // 直近1秒間の同一IPカウント計測
+            const oneSecAgo = now - 1000;
+            const recentReqsFromIp = state.requestLogWindow.filter(r => r.timestamp > oneSecAgo && r.ip === ip);
+            const currentIpRate = recentReqsFromIp.length;
+
+            // 3. 田代砲 / 高頻度F5連打 検知ルール (同一IPが閾値超過)
+            if (currentIpRate > state.ipRateLimit) {
+                state.blacklistedIPs.add(ip);
+                renderBlacklist();
+                state.droppedRequests++;
+
+                // アラート表示
+                triggerAlert('高頻度DoS攻撃検知 (田代砲パターン)', `IP [${ip}] が1秒間に ${currentIpRate} 回のリクエストを発射したため自動ブロックしました。`);
+
+                addLogEntry(now, ip, path, method, 'BLOCKED', `高頻度連打検知: ${currentIpRate} req/sec (閾値: ${state.ipRateLimit})`);
+                return { action: 'BLOCKED', reason: 'RATE_LIMIT_EXCEEDED' };
+            }
+
+            // 4. 正常リクエスト許可
+            addLogEntry(now, ip, path, method, 'ALLOW', `正常アクセス (${currentIpRate} req/s)`);
+            return { action: 'ALLOW', reason: 'NORMAL' };
         }
-        setInterval(updateClock, 1000);
-        updateClock();
 
-        // Control Inputs Binding
-        els.inputRpsLimit.addEventListener('input', (e) => {
-            state.rpsThreshold = parseInt(e.target.value);
-            els.labelRpsLimit.textContent = `${state.rpsThreshold} RPS`;
-            chartData.datasets[2].data = Array(30).fill(state.rpsThreshold);
-            trafficChart.update('none');
-        });
-
-        els.inputIpLimit.addEventListener('input', (e) => {
-            state.ipRateLimit = parseInt(e.target.value);
-            els.labelIpLimit.textContent = `${state.ipRateLimit} Req/Sec`;
-        });
-
-        // Event Listeners for Attack Buttons
-        document.getElementById('btn-traffic-normal').addEventListener('click', () => setMode('normal'));
-        document.getElementById('btn-attack-tashiro').addEventListener('click', () => setMode('tashiro'));
-        document.getElementById('btn-attack-ddos').addEventListener('click', () => setMode('ddos'));
-        document.getElementById('btn-attack-syn').addEventListener('click', () => setMode('syn'));
-        document.getElementById('btn-stop-all').addEventListener('click', () => setMode('normal'));
-        document.getElementById('btn-clear-logs').addEventListener('click', () => { els.logTableBody.innerHTML = ''; });
-        document.getElementById('btn-clear-blacklists').addEventListener('click', () => {
-            state.blacklistedIPs.clear();
-            renderBlacklist();
-        });
-
-        function setMode(mode) {
-            state.currentMode = mode;
-        }
-
-        // Random IP Generator for DDoS mode
-        function getRandomIP() {
-            return `${Math.floor(Math.random()*180)+10}.${Math.floor(Math.random()*254)}.${Math.floor(Math.random()*254)}.${Math.floor(Math.random()*254)}`;
-        }
-
-        // Add Log Entry to Table
-        function addLogEntry(ip, path, vector, status, reason) {
+        // ログテーブル追加
+        function addLogEntry(timestamp, ip, path, method, action, reason) {
             const tr = document.createElement('tr');
-            const now = new Date();
-            const timeStr = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+            const d = new Date(timestamp);
+            const timeStr = d.toTimeString().split(' ')[0] + '.' + String(d.getMilliseconds()).padStart(3, '0');
 
-            const isBlocked = status === 'BLOCKED';
-            tr.className = isBlocked ? 'bg-red-950/30 text-red-300 font-semibold' : 'hover:bg-slate-800/40';
+            const isBlocked = action === 'BLOCKED';
+            tr.className = isBlocked ? 'bg-red-950/40 text-red-300 font-medium' : 'hover:bg-slate-800/40';
 
             const statusBadge = isBlocked 
-                ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-red-950 text-red-400 border border-red-800">BLOCKED</span>`
-                : `<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">PASS</span>`;
+                ? `<span class="px-1.5 py-0.5 rounded text-[10px] bg-red-950 text-red-400 border border-red-800 font-bold">BLOCKED</span>`
+                : `<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800">ALLOW</span>`;
 
             tr.innerHTML = `
                 <td class="py-1.5 px-3 font-mono text-slate-400">${timeStr}</td>
                 <td class="py-1.5 px-3 font-mono ${isBlocked ? 'text-red-400 font-bold' : 'text-cyan-300'}">${ip}</td>
-                <td class="py-1.5 px-3 font-mono text-slate-300">${path}</td>
-                <td class="py-1.5 px-3 font-mono text-slate-400">${vector}</td>
+                <td class="py-1.5 px-3 font-mono text-slate-300">${method} ${path}</td>
+                <td class="py-1.5 px-3 font-mono text-slate-400">${getIpRps(ip)} req/s</td>
                 <td class="py-1.5 px-3">${statusBadge}</td>
                 <td class="py-1.5 px-3 font-mono text-xs ${isBlocked ? 'text-red-400' : 'text-slate-500'}">${reason}</td>
             `;
 
             els.logTableBody.insertBefore(tr, els.logTableBody.firstChild);
 
-            // Limit table rows to 50 for performance
-            if (els.logTableBody.children.length > 50) {
+            if (els.logTableBody.children.length > 40) {
                 els.logTableBody.removeChild(els.logTableBody.lastChild);
             }
         }
 
-        // Render Active Blacklist UI
+        function getIpRps(ip) {
+            const now = Date.now();
+            return state.requestLogWindow.filter(r => r.timestamp > (now - 1000) && r.ip === ip).length;
+        }
+
+        // ==========================================
+        // 1秒ごとのメトリクス集計タイマー
+        // ==========================================
+        setInterval(() => {
+            const now = Date.now();
+            const oneSecAgo = now - 1000;
+
+            // 古いログの削除
+            state.requestLogWindow = state.requestLogWindow.filter(r => r.timestamp > oneSecAgo);
+
+            const currentRps = state.requestLogWindow.length;
+            const currentBlockedRps = state.droppedRequests; // 直近の増加分
+
+            if (currentRps > state.peakRps) {
+                state.peakRps = currentRps;
+            }
+
+            // チャート更新
+            state.rpsHistory.shift();
+            state.rpsHistory.push(currentRps);
+
+            // 表示更新
+            els.metricRps.textContent = currentRps;
+            els.metricPeakRps.textContent = state.peakRps;
+            
+            // 過去30秒の移動平均
+            const sum = state.rpsHistory.reduce((a, b) => a + b, 0);
+            const avg = (sum / 30).toFixed(1);
+            els.metricAvgRps.textContent = avg;
+
+            els.metricTotalRequests.textContent = state.totalRequests.toLocaleString();
+            els.metricDroppedRequests.textContent = state.droppedRequests.toLocaleString();
+
+            const dropRate = state.totalRequests > 0 ? ((state.droppedRequests / state.totalRequests) * 100).toFixed(1) : '0.0';
+            els.metricDropRate.textContent = `${dropRate}%`;
+
+            // 脅威レベル総合判定
+            if (currentRps >= state.rpsThreshold || state.blacklistedIPs.size >= 3) {
+                els.metricThreatLevel.textContent = '攻撃検知 (ATTACK DETECTED)';
+                els.metricThreatLevel.className = 'text-xl font-bold font-mono text-red-500 animate-pulse';
+                els.threatIndicatorBar.className = 'absolute top-0 left-0 w-1 h-full bg-red-500';
+                els.threatIcon.className = 'w-4 h-4 text-red-500 animate-spin';
+                els.detectedVector.textContent = currentRps >= state.rpsThreshold ? '高負荷 HTTP Flood' : '田代砲/連打アクセス';
+            } else if (currentRps > state.rpsThreshold * 0.5) {
+                els.metricThreatLevel.textContent = '警告 (WARNING)';
+                els.metricThreatLevel.className = 'text-xl font-bold font-mono text-amber-400';
+                els.threatIndicatorBar.className = 'absolute top-0 left-0 w-1 h-full bg-amber-500';
+                els.threatIcon.className = 'w-4 h-4 text-amber-400';
+                els.detectedVector.textContent = 'アクセス増加傾向';
+            } else {
+                els.metricThreatLevel.textContent = '正常 (NORMAL)';
+                els.metricThreatLevel.className = 'text-xl font-bold font-mono text-emerald-400';
+                els.threatIndicatorBar.className = 'absolute top-0 left-0 w-1 h-full bg-emerald-500';
+                els.threatIcon.className = 'w-4 h-4 text-emerald-400';
+                els.detectedVector.textContent = 'なし';
+            }
+
+            trafficChart.update('none');
+        }, 1000);
+
+        // ==========================================
+        // WebSocket バックエンド連携機能
+        // ==========================================
+        function connectWebSocket() {
+            const url = els.inputWsUrl.value.trim();
+            if (!url) return;
+
+            if (state.ws) {
+                state.ws.close();
+            }
+
+            try {
+                state.ws = new WebSocket(url);
+
+                state.ws.onopen = () => {
+                    state.isWsConnected = true;
+                    els.wsStatusBadge.className = 'px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1.5';
+                    els.wsStatusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 接続済み (${url})`;
+                };
+
+                state.ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        processIncomingRequest({
+                            ip: data.ip || '192.168.1.50',
+                            path: data.path || '/api/test',
+                            method: data.method || 'GET'
+                        });
+                    } catch (e) {
+                        console.error('Invalid WS payload', e);
+                    }
+                };
+
+                state.ws.onerror = () => {
+                    markWsDisconnected();
+                };
+
+                state.ws.onclose = () => {
+                    markWsDisconnected();
+                };
+            } catch (e) {
+                markWsDisconnected();
+            }
+        }
+
+        function markWsDisconnected() {
+            state.isWsConnected = false;
+            els.wsStatusBadge.className = 'px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-950 text-amber-400 border border-amber-800 flex items-center gap-1.5';
+            els.wsStatusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> 未接続 (スタンドアロン動作中)`;
+        }
+
+        // ==========================================
+        // UI操作・ブラックリスト管理
+        // ==========================================
         function renderBlacklist() {
             els.blacklistContainer.innerHTML = '';
             els.metricBlockedIps.textContent = state.blacklistedIPs.size;
-            els.blockedCountSub.textContent = `${state.blacklistedIPs.size} Rules`;
-            els.blacklistBadgeCount.textContent = `${state.blacklistedIPs.size} IPs`;
+            els.blacklistBadgeCount.textContent = `${state.blacklistedIPs.size} 件`;
 
             if (state.blacklistedIPs.size === 0) {
-                els.blacklistContainer.innerHTML = `<div class="text-slate-600 text-[11px] italic text-center py-6">No IPs currently blacklisted</div>`;
+                els.blacklistContainer.innerHTML = `<div class="text-slate-600 text-[11px] italic text-center py-4">現在ブロックされているIPはありません</div>`;
                 return;
             }
 
@@ -598,7 +775,7 @@
                         <i data-lucide="shield-x" class="w-3.5 h-3.5 text-red-400"></i>
                         ${ip}
                     </span>
-                    <button onclick="unblockIP('${ip}')" class="text-slate-400 hover:text-slate-200 text-[10px] underline font-mono">Unblock</button>
+                    <button onclick="unblockIP('${ip}')" class="text-slate-400 hover:text-slate-100 text-[10px] underline font-mono">解除</button>
                 `;
                 els.blacklistContainer.appendChild(item);
             });
@@ -610,153 +787,121 @@
             renderBlacklist();
         }
 
-        // Core Engine Loop (Runs every 1 second)
-        function engineTick() {
-            // Reset per-second IP counts
-            state.ipRequestCounts = {};
-
-            let currentSecondTotal = 0;
-            let currentSecondBlocked = 0;
-
-            // Generate traffic according to active mode
-            let requestsToSimulate = [];
-
-            if (state.currentMode === 'normal') {
-                const count = Math.floor(Math.random() * 15) + 12; // 12-26 RPS
-                for (let i = 0; i < count; i++) {
-                    const ip = legitimateIPs[Math.floor(Math.random() * legitimateIPs.length)];
-                    requestsToSimulate.push({ ip, path: samplePaths[Math.floor(Math.random() * samplePaths.length)], vector: 'GET / HTTP/1.1' });
-                }
-            } 
-            else if (state.currentMode === 'tashiro') {
-                // Legitimate background traffic
-                for (let i = 0; i < 10; i++) {
-                    const ip = legitimateIPs[Math.floor(Math.random() * legitimateIPs.length)];
-                    requestsToSimulate.push({ ip, path: '/index.html', vector: 'GET / HTTP/1.1' });
-                }
-                // Tashiro Cannon / High frequency repeat attack from single IP
-                const attackCount = Math.floor(Math.random() * 30) + 130; // 130-160 RPS from ONE IP
-                for (let i = 0; i < attackCount; i++) {
-                    requestsToSimulate.push({ ip: attackerTashiroIP, path: '/target_page.php', vector: 'Tashiro-Cannon High-Freq GET' });
-                }
-            }
-            else if (state.currentMode === 'ddos') {
-                // Distributed DDoS: High traffic across many IPs
-                const ddosCount = Math.floor(Math.random() * 50) + 220; // 220-270 RPS
-                for (let i = 0; i < ddosCount; i++) {
-                    const ip = getRandomIP();
-                    requestsToSimulate.push({ ip, path: '/login', vector: 'HTTP Flood (Botnet)' });
-                }
-            }
-            else if (state.currentMode === 'syn') {
-                // TCP SYN Flood simulation
-                const synCount = Math.floor(Math.random() * 40) + 180;
-                for (let i = 0; i < synCount; i++) {
-                    const ip = getRandomIP();
-                    requestsToSimulate.push({ ip, path: 'N/A (Port 80)', vector: 'TCP SYN Burst' });
-                }
-            }
-
-            // Process simulated requests through Threat Mitigation Rules
-            requestsToSimulate.forEach(req => {
-                currentSecondTotal++;
-                state.totalRequests++;
-
-                // Track IP frequency
-                state.ipRequestCounts[req.ip] = (state.ipRequestCounts[req.ip] || 0) + 1;
-
-                // Rule 1: Check if IP is already in Blacklist
-                if (state.blacklistedIPs.has(req.ip)) {
-                    currentSecondBlocked++;
-                    state.droppedRequests++;
-                    if (Math.random() < 0.1) { // Throttle log creation for performance
-                        addLogEntry(req.ip, req.path, req.vector, 'BLOCKED', 'IP Blacklisted (Auto-Mitigated)');
-                    }
-                    return;
-                }
-
-                // Rule 2: Single-IP Burst / Tashiro Cannon Detection Threshold
-                if (state.ipRequestCounts[req.ip] > state.ipRateLimit) {
-                    state.blacklistedIPs.add(req.ip);
-                    renderBlacklist();
-                    currentSecondBlocked++;
-                    state.droppedRequests++;
-                    addLogEntry(req.ip, req.path, req.vector, 'BLOCKED', `Tashiro/Rapid-Click Detected (${state.ipRequestCounts[req.ip]} req/s)`);
-                    return;
-                }
-
-                // Rule 3: Legitimate Request PASS
-                if (Math.random() < 0.15 || state.currentMode === 'tashiro') { 
-                    // Selective logging for UI clean stream
-                    addLogEntry(req.ip, req.path, req.vector, 'PASS', 'Normal Behavior');
-                }
-            });
-
-            // Peak RPS Tracking
-            if (currentSecondTotal > state.peakRps) {
-                state.peakRps = currentSecondTotal;
-            }
-
-            // Threat Analysis Calculation
-            if (currentSecondTotal > state.rpsThreshold || state.blacklistedIPs.size > 2) {
-                state.threatLevel = currentSecondTotal > 200 ? 'CRITICAL' : 'HIGH';
-                state.threatScore = Math.min(100, Math.floor(currentSecondTotal / 2.5));
-                state.activeVector = state.currentMode === 'tashiro' ? 'Tashiro Cannon GET Flood' : 
-                                     state.currentMode === 'syn' ? 'SYN Flood' : 'Distributed HTTP Flood';
-            } else {
-                state.threatLevel = 'LOW';
-                state.threatScore = Math.floor(Math.random() * 8) + 10;
-                state.activeVector = 'None';
-            }
-
-            // Update UI Metrics
-            els.metricRps.textContent = currentSecondTotal;
-            els.metricPeakRps.textContent = state.peakRps;
-            els.metricTotalRequests.textContent = state.totalRequests.toLocaleString();
-            els.metricDroppedRequests.textContent = state.droppedRequests.toLocaleString();
-
-            const dropRate = state.totalRequests > 0 ? ((state.droppedRequests / state.totalRequests) * 100).toFixed(1) : '0.0';
-            els.metricDropRate.textContent = `${dropRate}%`;
-
-            // Threat Badge Styling
-            els.metricThreatLevel.textContent = state.threatLevel;
-            els.threatScore.textContent = `Score: ${state.threatScore}/100`;
-            els.detectedVector.textContent = state.activeVector;
-
-            if (state.threatLevel === 'CRITICAL' || state.threatLevel === 'HIGH') {
-                els.metricThreatLevel.className = 'text-2xl font-bold font-mono text-red-500 animate-pulse';
-                els.threatIndicatorBar.className = 'absolute top-0 left-0 w-1 h-full bg-red-500';
-                els.threatIcon.className = 'w-4 h-4 text-red-500 animate-spin';
-                els.statusBadge.className = 'px-2.5 py-1 rounded text-xs font-semibold bg-red-950 text-red-400 border border-red-800 flex items-center gap-1.5';
-                els.statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> ATTACK MITIGATING`;
-                els.rpsStatusLabel.textContent = 'HIGH SURGE';
-                els.rpsStatusLabel.className = 'text-red-400 font-bold';
-            } else {
-                els.metricThreatLevel.className = 'text-2xl font-bold font-mono text-emerald-400';
-                els.threatIndicatorBar.className = 'absolute top-0 left-0 w-1 h-full bg-emerald-500';
-                els.threatIcon.className = 'w-4 h-4 text-emerald-400';
-                els.statusBadge.className = 'px-2.5 py-1 rounded text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1.5';
-                els.statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> PROTECTED`;
-                els.rpsStatusLabel.textContent = 'Normal';
-                els.rpsStatusLabel.className = 'text-cyan-400';
-            }
-
-            // Update Chart Data
-            chartData.labels.shift();
-            chartData.labels.push('');
-            chartData.datasets[0].data.shift();
-            chartData.datasets[0].data.push(currentSecondTotal);
-            chartData.datasets[1].data.shift();
-            chartData.datasets[1].data.push(currentSecondBlocked);
-
-            trafficChart.update('none');
+        function triggerAlert(title, desc) {
+            els.alertTitle.textContent = title;
+            els.alertDesc.textContent = desc;
+            els.alertBanner.classList.remove('hidden');
         }
 
-        // Initialize App
+        function dismissAlertBanner() {
+            els.alertBanner.classList.add('hidden');
+        }
+
+        // 設定スライダー制御
+        els.inputRpsLimit.addEventListener('input', (e) => {
+            state.rpsThreshold = parseInt(e.target.value);
+            els.labelRpsLimit.textContent = `${state.rpsThreshold} RPS`;
+            trafficChart.data.datasets[2].data = Array(30).fill(state.rpsThreshold);
+            trafficChart.update('none');
+        });
+
+        els.inputIpLimit.addEventListener('input', (e) => {
+            state.ipRateLimit = parseInt(e.target.value);
+            els.labelIpLimit.textContent = `${state.ipRateLimit} Req/sec`;
+        });
+
+        // ボタンイベント
+        els.btnConnectWs.addEventListener('click', connectWebSocket);
+
+        document.getElementById('btn-test-single').addEventListener('click', () => {
+            processIncomingRequest({
+                ip: '127.0.0.1',
+                path: '/api/v1/user',
+                method: 'GET'
+            });
+        });
+
+        // 田代砲・連打攻撃シミュレートボタン（実パケット発行）
+        const btnBurst = document.getElementById('btn-test-burst');
+        btnBurst.addEventListener('click', () => {
+            if (state.burstInterval) {
+                clearInterval(state.burstInterval);
+                state.burstInterval = null;
+                btnBurst.innerHTML = `
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-red-400"></i>
+                        田代砲・高頻度連打テスト (超高速発射)
+                    </span>
+                    <span class="text-red-400 font-semibold">50 Req/sec</span>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            btnBurst.innerHTML = `
+                <span class="flex items-center gap-2 text-amber-300">
+                    <i data-lucide="square" class="w-4 h-4 text-amber-400"></i>
+                    連打停止
+                </span>
+                <span class="text-amber-400 font-semibold animate-pulse">発射中...</span>
+            `;
+            lucide.createIcons();
+
+            // 超高速（20ms周期 = 50 req/sec）で固定IP「203.0.113.88」からアクセスを発射
+            state.burstInterval = setInterval(() => {
+                processIncomingRequest({
+                    ip: '203.0.113.88', // 田代砲テスト用ターゲットIP
+                    path: '/target_form.php',
+                    method: 'POST'
+                });
+            }, 20);
+        });
+
+        document.getElementById('btn-clear-logs').addEventListener('click', () => {
+            els.logTableBody.innerHTML = '';
+        });
+
+        document.getElementById('btn-clear-blacklists').addEventListener('click', () => {
+            state.blacklistedIPs.clear();
+            renderBlacklist();
+        });
+
+        document.getElementById('btn-clear-stats').addEventListener('click', () => {
+            state.totalRequests = 0;
+            state.droppedRequests = 0;
+            state.peakRps = 0;
+            state.rpsHistory = Array(30).fill(0);
+        });
+
+        // Pythonコードモーダル表示制御
+        document.getElementById('btn-open-python-code').addEventListener('click', () => {
+            els.pythonModal.classList.remove('hidden');
+        });
+        document.getElementById('btn-close-modal').addEventListener('click', () => {
+            els.pythonModal.classList.add('hidden');
+        });
+        document.getElementById('btn-close-modal-2').addEventListener('click', () => {
+            els.pythonModal.classList.add('hidden');
+        });
+
+        document.getElementById('btn-copy-code').addEventListener('click', () => {
+            const code = document.getElementById('python-code-block').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = code;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            const copyBtn = document.getElementById('btn-copy-code');
+            copyBtn.textContent = 'コピー完了';
+            setTimeout(() => { copyBtn.textContent = 'コードをコピー'; }, 2000);
+        });
+
+        // 初期ロード
         window.addEventListener('DOMContentLoaded', () => {
             initChart();
             lucide.createIcons();
-            setInterval(engineTick, 1000);
         });
     </script>
 </body>
